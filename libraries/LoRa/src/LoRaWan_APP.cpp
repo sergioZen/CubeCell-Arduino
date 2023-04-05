@@ -106,7 +106,7 @@ bool SendFrame( void )
 	if( LoRaMacQueryTxPossible( appDataSize, &txInfo ) != LORAMAC_STATUS_OK )
 	{
 		// Send empty frame in order to flush MAC commands
-		printf("payload length error ...\r\n");
+		Serial.printf("payload length error ...\r\n");
 		mcpsReq.Type = MCPS_UNCONFIRMED;
 		mcpsReq.Req.Unconfirmed.fBuffer = NULL;
 		mcpsReq.Req.Unconfirmed.fBufferSize = 0;
@@ -116,7 +116,7 @@ bool SendFrame( void )
 	{
 		if( isTxConfirmed == false )
 		{
-			printf("unconfirmed uplink sending ...\r\n");
+			Serial.printf("unconfirmed uplink sending ...\r\n");
 			mcpsReq.Type = MCPS_UNCONFIRMED;
 			mcpsReq.Req.Unconfirmed.fPort = appPort;
 			mcpsReq.Req.Unconfirmed.fBuffer = appData;
@@ -125,7 +125,7 @@ bool SendFrame( void )
 		}
 		else
 		{
-			printf("confirmed uplink sending ...\r\n");
+			Serial.printf("confirmed uplink sending ...\r\n");
 			mcpsReq.Type = MCPS_CONFIRMED;
 			mcpsReq.Req.Confirmed.fPort = appPort;
 			mcpsReq.Req.Confirmed.fBuffer = appData;
@@ -157,10 +157,14 @@ static void OnTxNextPacketTimerEvent( void )
 	mibReq.Type = MIB_NETWORK_JOINED;
 	status = LoRaMacMibGetRequestConfirm( &mibReq );
 
+    Serial.println("LoRaMacMibGetRequestConfirm:");
+    Serial.println(status);
+
 	if( status == LORAMAC_STATUS_OK )
 	{
 		if( mibReq.Param.IsNetworkJoined == true )
 		{
+            Serial.println("IsNetworkJoined Ok!!!");
 			deviceState = DEVICE_STATE_SEND;
 			nextTx = true;
 		}
@@ -174,7 +178,12 @@ static void OnTxNextPacketTimerEvent( void )
 			mlmeReq.Req.Join.AppKey = appKey;
 			mlmeReq.Req.Join.NbTrials = 1;
 
-			if( LoRaMacMlmeRequest( &mlmeReq ) == LORAMAC_STATUS_OK )
+            int loraMacRequeststatus = LoRaMacMlmeRequest( &mlmeReq );
+
+            Serial.println("LoRaMacMlmeRequest: ");
+            Serial.println(status);
+
+			if(loraMacRequeststatus  == LORAMAC_STATUS_OK )
 			{
 				deviceState = DEVICE_STATE_SLEEP;
 			}
@@ -606,7 +615,7 @@ void LoRaWanClass::join()
 {
 	if( overTheAirActivation )
 	{
-		Serial.print("joining...");
+		Serial.println("joining...");
 		MlmeReq_t mlmeReq;
 		
 		mlmeReq.Type = MLME_JOIN;
@@ -618,11 +627,13 @@ void LoRaWanClass::join()
 
 		if( LoRaMacMlmeRequest( &mlmeReq ) == LORAMAC_STATUS_OK )
 		{
-			deviceState = DEVICE_STATE_SLEEP;
+			deviceState = DEVICE_STATE_SEND;
+            Serial.println("1.DEVICE_STATE_SEND...");
 		}
 		else
 		{
 			deviceState = DEVICE_STATE_CYCLE;
+            Serial.println("2.DEVICE_STATE_CYCLE...");
 		}
 	}
 	else
@@ -650,6 +661,8 @@ void LoRaWanClass::join()
 		LoRaMacMibSetRequestConfirm( &mibReq );
 		
 		deviceState = DEVICE_STATE_SEND;
+
+        Serial.println("3.DEVICE_STATE_SEND...");        
 	}
 }
 

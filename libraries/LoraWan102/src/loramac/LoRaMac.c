@@ -37,8 +37,11 @@ Maintainer: Miguel Luis ( Semtech ), Gregory Cristian ( Semtech ) and Daniel Jae
 
 #define CONFIG_LORA_CAD
 
+//SBR:
+#define CONFIG_LORA_VERIFY
+
 #ifdef CONFIG_LORA_VERIFY
-extern bool g_lora_debug;
+bool g_lora_debug=1;
 TimerTime_t mcps_start_time;
 #endif
 /*!
@@ -769,9 +772,7 @@ static void OnRadioTxDone( void )
         ChannelsNbRepCounter++;
     }
 #ifdef CONFIG_LORA_VERIFY
-    if (g_lora_debug) {
         PRINTF_RAW("The trasaction consume %llu time(ms)\r\n", curTime - mcps_start_time);
-    }
 #endif
 #ifdef CONFIG_LWAN
     lwan_dev_status_set(DEVICE_STATUS_SEND_PASS);
@@ -929,10 +930,8 @@ void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
                     LoRaMacParams.ReceiveDelay1 *= 1000;
                     LoRaMacParams.ReceiveDelay2 = LoRaMacParams.ReceiveDelay1 + 1000;
 #ifdef CONFIG_LORA_VERIFY
-                	if (g_lora_debug) {
                     	PRINTF_RAW("Rx1DrOffset:%u Rx2Channel.Datarate:%u ReceiveDelay1:%u\r\n",
                             	LoRaMacParams.Rx1DrOffset, LoRaMacParams.Rx2Channel.Datarate, (unsigned int)LoRaMacParams.ReceiveDelay1);
-                	}
 #endif
                     // Apply CF list
                     applyCFList.Payload = &LoRaMacRxPayload[13];
@@ -1146,7 +1145,6 @@ void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
                             McpsConfirm.AckReceived = false;
                             McpsIndication.AckReceived = false;
                             #ifdef CONFIG_LORA_VERIFY
-                            if (g_lora_debug)
                                 PRINTF_RAW("CMD exist at FRMpayload and Fopts, ignore it\r\n");
                             #endif
                         }
@@ -1180,9 +1178,7 @@ void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
                 LoRaMacFlags.Bits.McpsInd = 1;
             } else {
 #ifdef CONFIG_LORA_VERIFY
-                if (g_lora_debug) {
                     PRINTF_RAW("MIC verify failed ignore the frame\r\n");
-                }
 #endif
                 McpsIndication.Status = LORAMAC_EVENT_INFO_STATUS_MIC_FAIL;
 
@@ -3873,21 +3869,27 @@ LoRaMacStatus_t LoRaMacMlmeRequest( MlmeReq_t *mlmeRequest )
     GetPhyParams_t getPhy;
     PhyParam_t phyParam;
 
+
     if ( mlmeRequest == NULL ) {
+        printf("3LORAMAC_STATUS_PARAMETER_INVALID");
         return LORAMAC_STATUS_PARAMETER_INVALID;
     }
     if( LoRaMacState != LORAMAC_IDLE )
     {
+        printf("1.-LORAMAC_STATUS_BUSY");
+        printf(LoRaMacState);
         return LORAMAC_STATUS_BUSY;
     }
     if( LoRaMacConfirmQueueIsFull( ) == true )
     {
+        printf("2.-LORAMAC_STATUS_BUSY");
         return LORAMAC_STATUS_BUSY;
     }
 
-
     switch ( mlmeRequest->Type ) {
         case MLME_JOIN: {
+            printf("MLME_JOIN");
+
             if ( ( mlmeRequest->Req.Join.DevEui == NULL ) ||
                  ( mlmeRequest->Req.Join.AppEui == NULL ) ||
                  ( mlmeRequest->Req.Join.AppKey == NULL )) {
@@ -3934,8 +3936,10 @@ LoRaMacStatus_t LoRaMacMlmeRequest( MlmeReq_t *mlmeRequest )
 #endif
             LoRaMacParams.ChannelsDatarate = RegionAlternateDr( LoRaMacRegion, &altDr );
 
+            printf("2MLME_JOIN");            
+
 #ifdef CONFIG_LORA_VERIFY
-            if (g_lora_debug == true)
+
                 PRINTF_RAW("MacHdr major:%d rfu:%d mtype:%d\r\n", macHdr.Bits.Major, macHdr.Bits.RFU, macHdr.Bits.MType);
 #endif
             status = Send( &macHdr, 0, NULL, 0 );
@@ -4054,6 +4058,10 @@ LoRaMacStatus_t LoRaMacMlmeRequest( MlmeReq_t *mlmeRequest )
             LoRaMacFlags.Bits.MlmeReq = 0;
         }
     }
+
+    printf("LORA_STAT");
+    printf(status);
+    printf("LORA_END");
 
     return status;
 }
